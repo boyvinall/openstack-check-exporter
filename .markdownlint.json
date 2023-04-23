@@ -1,0 +1,12 @@
+{
+	"code-block-style": false,
+	"no-alt-text": false,
+	"fenced-code-language": false,
+	"no-inline-html": false,
+	"line-length": {
+		"line_length": 140
+	},
+	"ul-indent": false,
+	"ol-prefix": false,
+	"no-duplicate-header": false
+}
