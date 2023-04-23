@@ -60,7 +60,8 @@ func (c *checkGlanceShow) Check(ctx context.Context, providerClient *gophercloud
 		if e != nil {
 			return false, e
 		}
-		for _, image := range imageList {
+		for i := range imageList {
+			image := &imageList[i]
 			fmt.Fprintln(output, image.Name)
 		}
 		return false, nil

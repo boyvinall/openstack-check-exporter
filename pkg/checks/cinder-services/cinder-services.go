@@ -41,7 +41,8 @@ func (c *checkCinderServices) Check(ctx context.Context, providerClient *gopherc
 			healthy = false
 			return false, e
 		}
-		for _, s := range serviceList {
+		for i := range serviceList {
+			s := &serviceList[i]
 			if s.Status == "enabled" && s.State != "up" {
 				healthy = false
 			}
