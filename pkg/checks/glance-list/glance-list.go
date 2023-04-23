@@ -43,7 +43,7 @@ func (c *checkGlanceList) Check(ctx context.Context, providerClient *gophercloud
 			image := &imageList[i]
 			fmt.Fprintln(output, image.Name)
 		}
-		return false, nil
+		return false, nil // false: we only list the first page of images
 	})
 
 	return err

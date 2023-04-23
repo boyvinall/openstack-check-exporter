@@ -48,7 +48,7 @@ func (c *checkCinderServices) Check(ctx context.Context, providerClient *gopherc
 			}
 			fmt.Fprintln(output, s.Binary, s.Zone, s.Host, s.State, s.Status, s.DisabledReason)
 		}
-		return true, nil
+		return true, nil // true: we want to check all services
 	})
 
 	if err != nil {

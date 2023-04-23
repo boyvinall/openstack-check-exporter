@@ -18,6 +18,7 @@ import (
 	cinderservices "github.com/boyvinall/openstack-check-exporter/pkg/checks/cinder-services"
 	glancelist "github.com/boyvinall/openstack-check-exporter/pkg/checks/glance-list"
 	glanceshow "github.com/boyvinall/openstack-check-exporter/pkg/checks/glance-show"
+	neutronlistnetworks "github.com/boyvinall/openstack-check-exporter/pkg/checks/neutron-list-networks"
 )
 
 func serve(managers []*checker.CheckManager) error {
@@ -87,6 +88,7 @@ func createManagers(clouds ...string) ([]*checker.CheckManager, error) {
 			glancelist.New,
 			glanceshow.New,
 			cinderservices.New,
+			neutronlistnetworks.New,
 		})
 		if err != nil {
 			return nil, err
