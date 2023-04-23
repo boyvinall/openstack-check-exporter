@@ -22,6 +22,7 @@ import (
 	neutronlistnetworks "github.com/boyvinall/openstack-check-exporter/pkg/checks/neutron-list-networks"
 	novacreateinstance "github.com/boyvinall/openstack-check-exporter/pkg/checks/nova-create-instance"
 	novalistflavors "github.com/boyvinall/openstack-check-exporter/pkg/checks/nova-list-flavors"
+	novaservices "github.com/boyvinall/openstack-check-exporter/pkg/checks/nova-services"
 )
 
 func serve(managers []*checker.CheckManager) error {
@@ -95,6 +96,7 @@ func createManagers(clouds ...string) ([]*checker.CheckManager, error) {
 			novalistflavors.New,
 			neutronfloatingip.New,
 			novacreateinstance.New,
+			novaservices.New,
 		})
 		if err != nil {
 			return nil, err
