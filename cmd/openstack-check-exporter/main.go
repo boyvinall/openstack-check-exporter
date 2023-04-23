@@ -18,6 +18,7 @@ import (
 	cinderservices "github.com/boyvinall/openstack-check-exporter/pkg/checks/cinder-services"
 	glancelist "github.com/boyvinall/openstack-check-exporter/pkg/checks/glance-list"
 	glanceshow "github.com/boyvinall/openstack-check-exporter/pkg/checks/glance-show"
+	neutronfloatingip "github.com/boyvinall/openstack-check-exporter/pkg/checks/neutron-floating-ip"
 	neutronlistnetworks "github.com/boyvinall/openstack-check-exporter/pkg/checks/neutron-list-networks"
 	novalistflavors "github.com/boyvinall/openstack-check-exporter/pkg/checks/nova-list-flavors"
 )
@@ -91,6 +92,7 @@ func createManagers(clouds ...string) ([]*checker.CheckManager, error) {
 			cinderservices.New,
 			neutronlistnetworks.New,
 			novalistflavors.New,
+			neutronfloatingip.New,
 		})
 		if err != nil {
 			return nil, err
