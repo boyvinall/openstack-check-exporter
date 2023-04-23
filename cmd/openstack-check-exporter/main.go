@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	cinderservices "github.com/boyvinall/openstack-check-exporter/pkg/checks/cinder-services"
-	glancelist "github.com/boyvinall/openstack-check-exporter/pkg/checks/glance-list"
 	"github.com/boyvinall/openstack-check-exporter/pkg/history"
 	"github.com/boyvinall/openstack-check-exporter/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli/v2"
 
 	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
+	cinderservices "github.com/boyvinall/openstack-check-exporter/pkg/checks/cinder-services"
+	glancelist "github.com/boyvinall/openstack-check-exporter/pkg/checks/glance-list"
 	glanceshow "github.com/boyvinall/openstack-check-exporter/pkg/checks/glance-show"
 )
 

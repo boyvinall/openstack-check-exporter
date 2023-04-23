@@ -50,10 +50,8 @@ func (c *checkGlanceShow) Check(ctx context.Context, providerClient *gophercloud
 		fmt.Fprintln(output, string(b))
 	}
 
-	e, ok := get.Err.(*gophercloud.ErrUnexpectedResponseCode)
-	fmt.Println("ok", ok)
-	fmt.Println("e", e)
-	if !ok || e.Actual != 404 {
+	// don't error  if not found .. check for name instead below
+	if _, notfound := get.Err.(gophercloud.ErrDefault404); !notfound {
 		return get.Err
 	}
 
