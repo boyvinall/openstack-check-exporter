@@ -3,9 +3,9 @@ package novacreateinstance
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
@@ -23,7 +23,7 @@ const serverName = "monitoring-test"
 type checkNovaInstance struct{}
 
 // New returns a new Checker instance that creates and deletes a Nova instance
-func New() (checker.Checker, error) {
+func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
 	return &checkNovaInstance{}, nil
 }
 
@@ -31,15 +31,15 @@ func (c *checkNovaInstance) GetName() string {
 	return "nova-create-instance"
 }
 
-func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, output *bytes.Buffer) error {
-	novaClient, err := openstack.NewComputeV2(providerClient, gophercloud.EndpointOpts{Region: os.Getenv("OS_REGION_NAME")})
+func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
+	novaClient, err := openstack.NewComputeV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}
 
 	novaClient.Context = ctx
 
-	neutronClient, err := openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{Region: os.Getenv("OS_REGION_NAME")})
+	neutronClient, err := openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,12 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 		return err
 	}
 	serverID := server.ID
-	fmt.Fprintln(output, "Created server", server.ID, "in tenant", server.TenantID)
+
+	b, err := json.MarshalIndent(server, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(output, string(b))
 
 	// wait for the instance to be active
 	ticker := time.NewTicker(1 * time.Second)

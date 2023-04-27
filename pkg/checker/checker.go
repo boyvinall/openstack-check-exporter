@@ -11,11 +11,11 @@ import (
 	"github.com/gophercloud/utils/openstack/clientconfig"
 )
 
-type CheckerFactory func() (Checker, error)
+type CheckerFactory func(authOpts *gophercloud.AuthOptions, opts CloudOptions) (Checker, error)
 
 type Checker interface {
 	GetName() string
-	Check(ctx context.Context, providerClient *gophercloud.ProviderClient, output *bytes.Buffer) error
+	Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error
 }
 
 type CheckResult struct {
@@ -28,26 +28,38 @@ type CheckResult struct {
 }
 
 type CheckManager struct {
-	providerClient *gophercloud.ProviderClient
-	checks         []Checker
-	cloud          string
+	authOpts *gophercloud.AuthOptions
+	checks   []Checker
+	cloud    string
+	region   string
 }
 
-func New(cloud string, factories []CheckerFactory) (*CheckManager, error) {
-	if cloud == "" {
-		cloud = os.Getenv("OS_CLOUD")
-	}
-
-	providerClient, err := createProviderClient(cloud)
+func New(cloud string, opts CloudOptions, factories []CheckerFactory) (*CheckManager, error) {
+	clientopts := clientconfig.ClientOpts{Cloud: cloud}
+	authOpts, err := clientconfig.AuthOptions(&clientopts)
 	if err != nil {
 		return nil, err
 	}
-	providerClient.HTTPClient.Timeout = 10 * time.Second
 
-	cm := &CheckManager{providerClient: providerClient}
+	// would be nice if clientconfig.AuthOptions() would somehow return the region to us
+	region := os.Getenv("OS_REGION_NAME")
+	if cloud != "" {
+		var clientConfigCloud *clientconfig.Cloud
+		clientConfigCloud, err = clientconfig.GetCloudFromYAML(&clientopts)
+		if err != nil {
+			return nil, err
+		}
+		region = clientConfigCloud.RegionName
+	}
+
+	cm := &CheckManager{
+		authOpts: authOpts,
+		cloud:    cloud,
+		region:   region,
+	}
 	for i := range factories {
-		f := factories[i]
-		check, err := f()
+		checkfactory := factories[i]
+		check, err := checkfactory(authOpts, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -57,25 +69,27 @@ func New(cloud string, factories []CheckerFactory) (*CheckManager, error) {
 	return cm, nil
 }
 
-func createProviderClient(cloud string) (*gophercloud.ProviderClient, error) {
-	if cloud == "" {
-		opts, err := openstack.AuthOptionsFromEnv()
-		if err != nil {
-			return nil, err
-		}
-		return openstack.AuthenticatedClient(opts)
-	}
-
-	return clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
-		Cloud: cloud,
-	})
-}
-
 func (cm *CheckManager) GetCloud() string {
 	return cm.cloud
 }
 
-func (cm *CheckManager) Run(ctx context.Context) []*CheckResult {
+func (cm *CheckManager) Run(ctx context.Context) ([]*CheckResult, error) {
+	// First authenticate to get a token - do this only once across all tests.
+	// But we consciously create a new client from scratch on each run instead
+	// of re-authenticating a client across multiple runs.  This allows us to
+	// verify the token workflow more like a real client would.
+	providerClient, err := openstack.NewClient(cm.authOpts.IdentityEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	providerClient.HTTPClient = newHTTPClient()
+
+	err = openstack.Authenticate(providerClient, *cm.authOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	// then run all checks in parallel
 	count := len(cm.checks)
 	results := make([]*CheckResult, 0, count)
 	resultCh := make(chan *CheckResult)
@@ -84,7 +98,7 @@ func (cm *CheckManager) Run(ctx context.Context) []*CheckResult {
 		go func() {
 			var output bytes.Buffer
 			start := time.Now()
-			err := check.Check(ctx, cm.providerClient, &output)
+			err := check.Check(ctx, providerClient, cm.region, &output)
 			duration := time.Since(start)
 			resultCh <- &CheckResult{
 				Cloud:    cm.cloud,
@@ -99,5 +113,5 @@ func (cm *CheckManager) Run(ctx context.Context) []*CheckResult {
 	for i := 0; i < count; i++ {
 		results = append(results, <-resultCh)
 	}
-	return results
+	return results, nil
 }

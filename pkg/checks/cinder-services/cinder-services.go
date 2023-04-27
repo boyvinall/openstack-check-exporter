@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -18,17 +17,17 @@ type checkCinderServices struct {
 }
 
 // New returns a new Checker instance that lists images in glance
-func New() (checker.Checker, error) {
+func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
 	return &checkCinderServices{}, nil
 }
 
 func (c *checkCinderServices) GetName() string {
-	return "cinder-list-services"
+	return "cinder-check-services"
 }
 
-func (c *checkCinderServices) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, output *bytes.Buffer) error {
+func (c *checkCinderServices) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
 
-	cinderClient, err := openstack.NewBlockStorageV2(providerClient, gophercloud.EndpointOpts{Region: os.Getenv("OS_REGION_NAME")})
+	cinderClient, err := openstack.NewBlockStorageV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}

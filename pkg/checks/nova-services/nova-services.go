@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -17,17 +16,16 @@ import (
 type checkNovaServices struct{}
 
 // New returns a new Checker instance that lists nova services
-func New() (checker.Checker, error) {
+func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
 	return &checkNovaServices{}, nil
 }
 
 func (c *checkNovaServices) GetName() string {
-	return "nova-list-services"
+	return "nova-check-services"
 }
 
-func (c *checkNovaServices) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, output *bytes.Buffer) error {
-
-	novaClient, err := openstack.NewComputeV2(providerClient, gophercloud.EndpointOpts{Region: os.Getenv("OS_REGION_NAME")})
+func (c *checkNovaServices) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
+	novaClient, err := openstack.NewComputeV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}

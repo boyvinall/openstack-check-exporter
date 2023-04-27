@@ -11,6 +11,18 @@
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/openstack-check-exporter",
             "args": ["once"]
+        },
+        {
+            "name": "Show check config",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/openstack-check-exporter",
+            "args": [
+                "-c", "os1",
+                "show-cloud-options",
+            ],
+            "cwd": "${workspaceFolder}",
         }
     ]
 }

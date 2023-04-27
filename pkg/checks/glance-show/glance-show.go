@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -16,26 +15,33 @@ import (
 )
 
 type checkGlanceShow struct {
+	image string
 }
 
 // New returns a new Checker instance that lists images in glance
-func New() (checker.Checker, error) {
-	return &checkGlanceShow{}, nil
+func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
+	checker := &checkGlanceShow{
+		image: "cirros",
+	}
+	if _, err := opts.String(checker.GetName(), "image", &checker.image); err != nil {
+		return nil, err
+	}
+	return checker, nil
 }
 
 func (c *checkGlanceShow) GetName() string {
 	return "glance-show-image"
 }
 
-func (c *checkGlanceShow) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, output *bytes.Buffer) error {
+func (c *checkGlanceShow) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
 
-	imageClient, err := openstack.NewImageServiceV2(providerClient, gophercloud.EndpointOpts{Region: os.Getenv("OS_REGION_NAME")})
+	imageClient, err := openstack.NewImageServiceV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}
 	imageClient.Context = ctx
 
-	get := images.Get(imageClient, "cirros")
+	get := images.Get(imageClient, c.image)
 	if get.Err == nil {
 		i, err := get.Extract()
 		if err != nil {
@@ -55,7 +61,7 @@ func (c *checkGlanceShow) Check(ctx context.Context, providerClient *gophercloud
 		return get.Err
 	}
 
-	err = images.List(imageClient, images.ListOpts{Name: "cirros"}).EachPage(func(page pagination.Page) (bool, error) {
+	err = images.List(imageClient, images.ListOpts{Name: c.image}).EachPage(func(page pagination.Page) (bool, error) {
 		imageList, e := images.ExtractImages(page)
 		if e != nil {
 			return false, e

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
 	"github.com/gophercloud/gophercloud"
@@ -12,19 +11,29 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 )
 
-type checkNeutronFloatingIP struct{}
+type checkNeutronFloatingIP struct {
+	pool string
+}
 
 // New returns a new Checker instance that creates/deletes a floating IP
-func New() (checker.Checker, error) {
-	return &checkNeutronFloatingIP{}, nil
+func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
+
+	checker := &checkNeutronFloatingIP{
+		pool: "public",
+	}
+	if _, err := opts.String(checker.GetName(), "pool_name", &checker.pool); err != nil {
+		return nil, err
+	}
+
+	return checker, nil
 }
 
 func (c *checkNeutronFloatingIP) GetName() string {
 	return "neutron-floating-ip"
 }
 
-func (c *checkNeutronFloatingIP) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, output *bytes.Buffer) error {
-	novaClient, err := openstack.NewComputeV2(providerClient, gophercloud.EndpointOpts{Region: os.Getenv("OS_REGION_NAME")})
+func (c *checkNeutronFloatingIP) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
+	novaClient, err := openstack.NewComputeV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}
@@ -33,7 +42,7 @@ func (c *checkNeutronFloatingIP) Check(ctx context.Context, providerClient *goph
 
 	// Create a floating IP
 	floatingIP, err := floatingips.Create(novaClient, floatingips.CreateOpts{
-		Pool: os.Getenv("OS_POOL_NAME"),
+		Pool: c.pool,
 	}).Extract()
 	if err != nil {
 		return err

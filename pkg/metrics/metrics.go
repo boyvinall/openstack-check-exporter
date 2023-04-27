@@ -41,7 +41,7 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc(
-				"openstack_monitoring_check_healthy",
+				"openstack_check_healthy",
 				"OpenStack Monitoring Check",
 				[]string{
 					"name",
@@ -57,8 +57,8 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc(
-				"openstack_monitoring_check_duration_seconds",
-				"OpenStack Monitoring Check",
+				"openstack_check_duration_seconds",
+				"How long the check took to run",
 				[]string{
 					"name",
 					"cloud",

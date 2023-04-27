@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -18,7 +17,7 @@ type checkGlanceList struct {
 }
 
 // New returns a new Checker instance that lists images in glance
-func New() (checker.Checker, error) {
+func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
 	return &checkGlanceList{}, nil
 }
 
@@ -26,9 +25,9 @@ func (c *checkGlanceList) GetName() string {
 	return "glance-list-images"
 }
 
-func (c *checkGlanceList) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, output *bytes.Buffer) error {
+func (c *checkGlanceList) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
 
-	imageClient, err := openstack.NewImageServiceV2(providerClient, gophercloud.EndpointOpts{Region: os.Getenv("OS_REGION_NAME")})
+	imageClient, err := openstack.NewImageServiceV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}

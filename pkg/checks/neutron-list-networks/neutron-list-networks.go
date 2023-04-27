@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -17,7 +16,7 @@ import (
 type neutronListNetworks struct{}
 
 // New returns a new Checker instance that lists networks in neutron
-func New() (checker.Checker, error) {
+func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
 	return &neutronListNetworks{}, nil
 }
 
@@ -25,8 +24,8 @@ func (c *neutronListNetworks) GetName() string {
 	return "neutron-list-networks"
 }
 
-func (c *neutronListNetworks) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, output *bytes.Buffer) error {
-	neutronClient, err := openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{Region: os.Getenv("OS_REGION_NAME")})
+func (c *neutronListNetworks) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
+	neutronClient, err := openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}

@@ -9,4 +9,6 @@ and
 [osops-tools-monitoring/nagios-plugins](https://github.com/openstack-archive/osops-tools-monitoring/tree/7427ee739296e93f18aed92f7150abf732fd92b3/nagios-plugins).
 
 By comparison, <https://github.com/openstack-exporter/openstack-exporter> does not attempt to create any resources, merely
-reading from the API and exposing those details.  It's definitely valid to run both of these exporters at the same time.
+reading from the API and exposing those details.  It's recommended to run both of these exporters at the same time.
+There is some overlapping functionality, though a benefit of the exporter from this repo is that durations are recorded,
+which can be useful to monitor for performance regressions.
