@@ -28,7 +28,7 @@ import (
 	"github.com/boyvinall/openstack-check-exporter/pkg/metrics"
 )
 
-func serve(managers []*checker.CheckManager) error {
+func serve(listenAddress string, managers []*checker.CheckManager) error {
 	h, err := history.New(1000)
 	if err != nil {
 		return err
@@ -41,9 +41,10 @@ func serve(managers []*checker.CheckManager) error {
 		http.Handle("/detail/", http.StripPrefix("/detail/", http.HandlerFunc(h.ShowDetail)))
 		http.Handle("/metrics", promhttp.Handler())
 		server := &http.Server{
-			Addr:              ":8080",
+			Addr:              listenAddress,
 			ReadHeaderTimeout: 3 * time.Second,
 		}
+		slog.Info("serving", "address", listenAddress)
 		serveCh <- server.ListenAndServe()
 	}()
 
@@ -142,7 +143,14 @@ func main() {
 				if err != nil {
 					return err
 				}
-				return serve(managers)
+				return serve(c.String("listen-address"), managers)
+			},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:  "listen-address",
+					Usage: "Address to listen on for web interface and telemetry",
+					Value: ":8080",
+				},
 			},
 		},
 		{
