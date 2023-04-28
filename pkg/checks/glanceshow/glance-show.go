@@ -32,7 +32,7 @@ func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.
 }
 
 func (c *checkGlanceShow) GetName() string {
-	return "glance-show-image"
+	return "glance_show_image"
 }
 
 func (c *checkGlanceShow) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {

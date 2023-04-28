@@ -31,7 +31,7 @@ func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.
 }
 
 func (c *checkNeutronFloatingIP) GetName() string {
-	return "neutron-floating-ip"
+	return "neutron_floating_ip"
 }
 
 func (c *checkNeutronFloatingIP) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {

@@ -68,7 +68,7 @@ func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.
 }
 
 func (c *checkHorizonLogin) GetName() string {
-	return "horizon-login"
+	return "horizon_login"
 }
 
 func (c *checkHorizonLogin) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {

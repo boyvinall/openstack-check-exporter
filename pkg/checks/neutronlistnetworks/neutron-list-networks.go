@@ -22,7 +22,7 @@ func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.
 }
 
 func (c *neutronListNetworks) GetName() string {
-	return "neutron-list-networks"
+	return "neutron_list_networks"
 }
 
 func (c *neutronListNetworks) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {

@@ -14,7 +14,7 @@
                 "-v",
                 "-c", "os1",
                 "once",
-                "horizon-login",
+                "horizon_login",
             ],
             "cwd": "${workspaceFolder}",
         },

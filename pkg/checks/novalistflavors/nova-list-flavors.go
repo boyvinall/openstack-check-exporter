@@ -22,7 +22,7 @@ func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.
 }
 
 func (c *checkNovaListFlavors) GetName() string {
-	return "nova-list-flavors"
+	return "nova_list_flavors"
 }
 
 func (c *checkNovaListFlavors) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {

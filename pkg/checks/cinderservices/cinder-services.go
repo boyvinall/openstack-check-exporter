@@ -23,7 +23,7 @@ func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.
 }
 
 func (c *checkCinderServices) GetName() string {
-	return "cinder-check-services"
+	return "cinder_check_services"
 }
 
 func (c *checkCinderServices) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {

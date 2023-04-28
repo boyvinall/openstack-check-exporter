@@ -24,42 +24,62 @@ type checkNovaInstance struct {
 	flavorName  string
 	imageName   string
 	networkName string
+	autoDelete  bool
 }
 
 // New returns a new Checker instance that creates and deletes a Nova instance
 func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
-	checker := &checkNovaInstance{
+	c := &checkNovaInstance{
 		serverName:  "monitoring-test",
 		flavorName:  "m1.tiny",
 		imageName:   "cirros",
 		networkName: "admin-net",
+		autoDelete:  false,
 	}
-	if _, err := opts.String(checker.GetName(), "server_name", &checker.serverName); err != nil {
+	if _, err := opts.String(c.GetName(), "server_name", &c.serverName); err != nil {
 		return nil, err
 	}
-	if _, err := opts.String(checker.GetName(), "flavor_name", &checker.flavorName); err != nil {
+	if _, err := opts.String(c.GetName(), "flavor_name", &c.flavorName); err != nil {
 		return nil, err
 	}
-	if _, err := opts.String(checker.GetName(), "image_name", &checker.imageName); err != nil {
+	if _, err := opts.String(c.GetName(), "image_name", &c.imageName); err != nil {
 		return nil, err
 	}
-	if _, err := opts.String(checker.GetName(), "network_name", &checker.networkName); err != nil {
+	if _, err := opts.String(c.GetName(), "network_name", &c.networkName); err != nil {
+		return nil, err
+	}
+	if _, err := opts.Bool(c.GetName(), "auto_delete", &c.autoDelete); err != nil {
 		return nil, err
 	}
 
-	return checker, nil
+	if c.serverName == "" {
+		return nil, errors.New("server_name must be non-empty")
+	}
+	if c.flavorName == "" {
+		return nil, errors.New("flavor_name must be non-empty")
+	}
+	if c.imageName == "" {
+		return nil, errors.New("image_name must be non-empty")
+	}
+	if c.networkName == "" {
+		return nil, errors.New("network_name must be non-empty")
+	}
+
+	return c, nil
 }
 
 func (c *checkNovaInstance) GetName() string {
-	return "nova-create-instance"
+	return "nova_create_instance"
 }
 
 func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
+
+	// construct our service clients
+
 	novaClient, err := openstack.NewComputeV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}
-
 	novaClient.Context = ctx
 
 	neutronClient, err := openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{Region: region})
@@ -68,23 +88,8 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 	}
 	neutronClient.Context = ctx
 
-	// check the instance doesn't already exist
+	// resolve names into IDs – do this here, not in the constructor, so that we behave correctly if the IDs change during the lifetime of the checker
 
-	allPages, err := servers.List(novaClient, servers.ListOpts{
-		Name: c.serverName,
-	}).AllPages()
-	if err != nil {
-		return err
-	}
-	allServers, err := servers.ExtractServers(allPages)
-	if err != nil {
-		return err
-	}
-	if len(allServers) > 0 {
-		return errors.New("server already exists")
-	}
-
-	// get the flavor ID
 	flavorID, err := utilsflavors.IDFromName(novaClient, c.flavorName)
 	if err != nil {
 		return err
@@ -94,6 +99,43 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 		return err
 	}
 	networkID, err := utilsnetworks.IDFromName(neutronClient, c.networkName)
+	if err != nil {
+		return err
+	}
+
+	// check the instance doesn't already exist
+
+	allPages, err := servers.List(novaClient, servers.ListOpts{
+		Name:   c.serverName,
+		Image:  imageID,
+		Flavor: flavorID,
+	}).AllPages()
+	if err != nil {
+		return err
+	}
+	allServers, err := servers.ExtractServers(allPages)
+	if err != nil {
+		return err
+	}
+	switch len(allServers) {
+	case 0: // all good, go ahead and create it
+
+	case 1:
+		if !c.autoDelete {
+			return errors.New("server already exists")
+		}
+
+		// delete the existing instance
+		serverID := allServers[0].ID
+		fmt.Fprintln(output, "deleting existing instance", serverID)
+		err = servers.Delete(novaClient, serverID).ExtractErr()
+		if err != nil {
+			return err
+		}
+
+	default:
+		return errors.New("found multiple servers")
+	}
 
 	// create the instance
 
@@ -117,6 +159,7 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 	fmt.Fprintf(output, string(b))
 
 	// wait for the instance to be active
+
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
@@ -138,6 +181,7 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 	}
 
 	// delete the instance
+
 	err = servers.Delete(novaClient, server.ID).ExtractErr()
 	if err != nil {
 		return err

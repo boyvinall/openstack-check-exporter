@@ -132,3 +132,22 @@ func (opts CloudOptions) Int(checkname, key string, value *int) (bool, error) {
 	*value = s
 	return found, nil
 }
+
+// Bool returns the bool value of the given option key for the given checkname in this Openstack cloud.
+//   - If the option is not set, the value is not changed and false is returned.
+//   - If the option is set, the value is set and true is returned.
+//   - If the option is set but the value is not a string, an error is returned.
+func (opts CloudOptions) Bool(checkname, key string, value *bool) (bool, error) {
+	v, found := opts[checkname][key]
+	if !found {
+		return found, nil
+	}
+
+	s, ok := v.(bool)
+	if !ok {
+		return found, fmt.Errorf("%s/%s value is not a bool", checkname, key)
+	}
+
+	*value = s
+	return found, nil
+}
