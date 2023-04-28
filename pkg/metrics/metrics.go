@@ -12,6 +12,7 @@ import (
 type Metrics struct {
 	lock   sync.Mutex
 	latest []*checker.CheckResult
+	when   time.Time
 }
 
 func New() *Metrics {
@@ -24,6 +25,7 @@ func (m *Metrics) Update(results []*checker.CheckResult) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.latest = results
+	m.when = time.Now()
 }
 
 func (m *Metrics) Describe(ch chan<- *prometheus.Desc) {
@@ -70,6 +72,18 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 			float64(r.Duration)/float64(time.Second),
 			r.Name,
 			r.Cloud,
+		)
+	}
+	if !m.when.IsZero() {
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc(
+				"openstack_check_last_update_time_seconds",
+				"Number of seconds since epoch when checks were last updated",
+				[]string{},
+				nil,
+			),
+			prometheus.GaugeValue,
+			float64(m.when.Unix()),
 		)
 	}
 }
