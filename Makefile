@@ -30,3 +30,8 @@ build: $(BINARIES)
 lint:
 	$(call PROMPT,$@)
 	golangci-lint run
+
+.PHONY: snyk
+snyk:
+	$(call PROMPT,$@)
+	snyk test
