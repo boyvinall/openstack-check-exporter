@@ -1,3 +1,4 @@
+// Package novacreateinstance implements a `checker.Check` that creates/deletes a Nova instance
 package novacreateinstance
 
 import (
@@ -18,12 +19,34 @@ import (
 	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
 )
 
-const serverName = "monitoring-test"
-
-type checkNovaInstance struct{}
+type checkNovaInstance struct {
+	serverName  string
+	flavorName  string
+	imageName   string
+	networkName string
+}
 
 // New returns a new Checker instance that creates and deletes a Nova instance
 func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
+	checker := &checkNovaInstance{
+		serverName:  "monitoring-test",
+		flavorName:  "m1.tiny",
+		imageName:   "cirros",
+		networkName: "admin-net",
+	}
+	if _, err := opts.String(checker.GetName(), "server_name", &checker.serverName); err != nil {
+		return nil, err
+	}
+	if _, err := opts.String(checker.GetName(), "flavor_name", &checker.flavorName); err != nil {
+		return nil, err
+	}
+	if _, err := opts.String(checker.GetName(), "image_name", &checker.imageName); err != nil {
+		return nil, err
+	}
+	if _, err := opts.String(checker.GetName(), "network_name", &checker.networkName); err != nil {
+		return nil, err
+	}
+
 	return &checkNovaInstance{}, nil
 }
 
@@ -48,7 +71,7 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 	// check the instance doesn't already exist
 
 	allPages, err := servers.List(novaClient, servers.ListOpts{
-		Name: serverName,
+		Name: c.serverName,
 	}).AllPages()
 	if err != nil {
 		return err
@@ -62,20 +85,20 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 	}
 
 	// get the flavor ID
-	flavorID, err := utilsflavors.IDFromName(novaClient, "m1.tiny")
+	flavorID, err := utilsflavors.IDFromName(novaClient, c.flavorName)
 	if err != nil {
 		return err
 	}
-	imageID, err := utilsimages.IDFromName(novaClient, "cirros")
+	imageID, err := utilsimages.IDFromName(novaClient, c.imageName)
 	if err != nil {
 		return err
 	}
-	networkID, err := utilsnetworks.IDFromName(neutronClient, "admin-net")
+	networkID, err := utilsnetworks.IDFromName(neutronClient, c.networkName)
 
 	// create the instance
 
 	createOpts := servers.CreateOpts{
-		Name:      serverName,
+		Name:      c.serverName,
 		ImageRef:  imageID,
 		FlavorRef: flavorID,
 		Networks:  []servers.Network{{UUID: networkID}},

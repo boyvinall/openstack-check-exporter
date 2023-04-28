@@ -1,3 +1,4 @@
+// Package history stores check results and provides a web interface to view them
 package history
 
 import (

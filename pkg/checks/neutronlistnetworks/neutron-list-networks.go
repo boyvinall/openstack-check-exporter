@@ -1,3 +1,4 @@
+// Package neutronlistnetworks implements a `checker.Check` that lists all networks in neutron
 package neutronlistnetworks
 
 import (

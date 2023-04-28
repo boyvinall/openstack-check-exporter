@@ -1,3 +1,4 @@
+// Package glanceshow implements a `checker.Check` that ensures the specified glance image is listed in glance
 package glanceshow
 
 import (
@@ -15,6 +16,7 @@ import (
 )
 
 type checkGlanceShow struct {
+	// image can be either an ID or a name
 	image string
 }
 

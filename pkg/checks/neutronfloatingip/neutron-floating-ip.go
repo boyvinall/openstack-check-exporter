@@ -1,3 +1,4 @@
+// Package neutronfloatingip implements a `checker.Check` that creates/deletes a floating IP
 package neutronfloatingip
 
 import (
@@ -5,10 +6,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
+
+	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
 )
 
 type checkNeutronFloatingIP struct {

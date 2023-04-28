@@ -1,3 +1,4 @@
+// Package main implements the main entrypoint for the openstack-check-exporter
 package main
 
 import (
@@ -11,17 +12,18 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/exp/slog"
 
 	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
-	cinderservices "github.com/boyvinall/openstack-check-exporter/pkg/checks/cinder-services"
-	glancelist "github.com/boyvinall/openstack-check-exporter/pkg/checks/glance-list"
-	glanceshow "github.com/boyvinall/openstack-check-exporter/pkg/checks/glance-show"
-	horizonlogin "github.com/boyvinall/openstack-check-exporter/pkg/checks/horizon-login"
-	neutronfloatingip "github.com/boyvinall/openstack-check-exporter/pkg/checks/neutron-floating-ip"
-	neutronlistnetworks "github.com/boyvinall/openstack-check-exporter/pkg/checks/neutron-list-networks"
-	novacreateinstance "github.com/boyvinall/openstack-check-exporter/pkg/checks/nova-create-instance"
-	novalistflavors "github.com/boyvinall/openstack-check-exporter/pkg/checks/nova-list-flavors"
-	novaservices "github.com/boyvinall/openstack-check-exporter/pkg/checks/nova-services"
+	"github.com/boyvinall/openstack-check-exporter/pkg/checks/cinderservices"
+	"github.com/boyvinall/openstack-check-exporter/pkg/checks/glancelist"
+	"github.com/boyvinall/openstack-check-exporter/pkg/checks/glanceshow"
+	"github.com/boyvinall/openstack-check-exporter/pkg/checks/horizonlogin"
+	"github.com/boyvinall/openstack-check-exporter/pkg/checks/neutronfloatingip"
+	"github.com/boyvinall/openstack-check-exporter/pkg/checks/neutronlistnetworks"
+	"github.com/boyvinall/openstack-check-exporter/pkg/checks/novacreateinstance"
+	"github.com/boyvinall/openstack-check-exporter/pkg/checks/novalistflavors"
+	"github.com/boyvinall/openstack-check-exporter/pkg/checks/novaservices"
 	"github.com/boyvinall/openstack-check-exporter/pkg/history"
 	"github.com/boyvinall/openstack-check-exporter/pkg/metrics"
 )
@@ -67,10 +69,10 @@ func serve(managers []*checker.CheckManager) error {
 	}
 }
 
-func once(managers []*checker.CheckManager) error {
+func once(managers []*checker.CheckManager, checks []string) error {
 	ctx := context.Background()
 	for _, mgr := range managers {
-		results, err := mgr.Run(ctx)
+		results, err := mgr.Run(ctx, checks...)
 		if err != nil {
 			return err
 		}
@@ -148,7 +150,7 @@ func main() {
 				if err != nil {
 					return err
 				}
-				return once(managers)
+				return once(managers, c.Args().Slice())
 			},
 		},
 		{
@@ -177,6 +179,20 @@ func main() {
 			Aliases: []string{"f"},
 			Usage:   "Path to settings.yaml",
 			Value:   "settings.yaml",
+		},
+		&cli.BoolFlag{
+			Name:    "verbose",
+			Aliases: []string{"v"},
+			Usage:   "Increase verbosity",
+			Action: func(c *cli.Context, verbose bool) error {
+				programLevel := slog.LevelWarn
+				if verbose {
+					programLevel = slog.LevelDebug
+				}
+				h := slog.HandlerOptions{Level: programLevel}.NewJSONHandler(os.Stderr)
+				slog.SetDefault(slog.New(h))
+				return nil
+			},
 		},
 	}
 	err := app.Run(os.Args)

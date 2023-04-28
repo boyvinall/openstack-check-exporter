@@ -10,7 +10,13 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/openstack-check-exporter",
-            "args": ["once"]
+            "args": [
+                "-v",
+                "-c", "os1",
+                "once",
+                "horizon-login",
+            ],
+            "cwd": "${workspaceFolder}",
         },
         {
             "name": "Show check config",

@@ -1,3 +1,4 @@
+// Package novaservices implements a `checker.Check` that lists nova services and checks their state
 package novaservices
 
 import (

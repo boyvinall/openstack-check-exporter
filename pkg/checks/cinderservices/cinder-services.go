@@ -1,3 +1,4 @@
+// Package cinderservices implements a `checker.Check` that lists cinder services and checks their state
 package cinderservices
 
 import (

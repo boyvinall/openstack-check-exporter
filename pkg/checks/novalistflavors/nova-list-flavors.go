@@ -1,3 +1,4 @@
+// Package novalistflavors implements a `checker.Check` that lists flavors in nova
 package novalistflavors
 
 import (

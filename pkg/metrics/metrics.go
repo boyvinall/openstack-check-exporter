@@ -1,3 +1,4 @@
+// Package metrics implements a prometheus.Collector that exposes metrics about the checks that were run
 package metrics
 
 import (

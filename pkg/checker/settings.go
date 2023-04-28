@@ -38,6 +38,7 @@ func LoadSettingsFromFile(path string) (*Settings, error) {
 	return &settings, nil
 }
 
+// GetCloudOptions returns a CloudOptions struct for the given cloud name
 func (s *Settings) GetCloudOptions(cloud string) CloudOptions {
 	// first set hard-coded default
 	defaultGlobalOpts := CheckOptions{
@@ -78,6 +79,7 @@ func (s *Settings) GetCloudOptions(cloud string) CloudOptions {
 	return cloudOpts
 }
 
+// Dump prints the settings to stdout
 func (opts CloudOptions) Dump() {
 	for check, checkopts := range opts {
 		fmt.Printf("%s:\n", check)
@@ -93,6 +95,10 @@ func (opts CloudOptions) Dump() {
 	}
 }
 
+// String returns the string value of the given option key for the given checkname in this Openstack cloud.
+//   - If the option is not set, the value is not changed and false is returned.
+//   - If the option is set, the value is set and true is returned.
+//   - If the option is set but the value is not a string, an error is returned.
 func (opts CloudOptions) String(checkname, key string, value *string) (bool, error) {
 	v, found := opts[checkname][key]
 	if !found {
@@ -108,6 +114,10 @@ func (opts CloudOptions) String(checkname, key string, value *string) (bool, err
 	return found, nil
 }
 
+// Int returns the int value of the given option key for the given checkname in this Openstack cloud.
+//   - If the option is not set, the value is not changed and false is returned.
+//   - If the option is set, the value is set and true is returned.
+//   - If the option is set but the value is not a string, an error is returned.
 func (opts CloudOptions) Int(checkname, key string, value *int) (bool, error) {
 	v, found := opts[checkname][key]
 	if !found {

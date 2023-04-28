@@ -1,3 +1,4 @@
+// Package glancelist implements a `checker.Check` that lists one page glance images to ensure glance is working
 package glancelist
 
 import (
@@ -13,8 +14,7 @@ import (
 	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
 )
 
-type checkGlanceList struct {
-}
+type checkGlanceList struct{}
 
 // New returns a new Checker instance that lists images in glance
 func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {

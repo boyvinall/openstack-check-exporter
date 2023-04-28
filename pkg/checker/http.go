@@ -20,13 +20,13 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	response, err := lrt.rt.RoundTrip(request)
 	if response == nil {
 		slog.Error("http roundtrip failed",
-			"url", request.URL,
+			"url", request.URL.String(),
 			"error", err,
 		)
 		return nil, err
 	}
 	slog.Debug("request",
-		"url", request.URL,
+		"url", request.URL.String(),
 		"statuscode", response.StatusCode,
 	)
 
