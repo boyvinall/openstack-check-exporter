@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gophercloud/gophercloud"
+	"golang.org/x/exp/slog"
 
 	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
 )
@@ -82,7 +83,10 @@ func (c *checkHorizonLogin) Check(ctx context.Context, providerClient *gopherclo
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	err = resp.Body.Close()
+	if err != nil {
+		slog.Error("unable to close body", "error", err)
+	}
 	fmt.Fprintln(output, resp.Status)
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("horizon login failed")
@@ -115,7 +119,10 @@ func (c *checkHorizonLogin) Check(ctx context.Context, providerClient *gopherclo
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	err = resp.Body.Close()
+	if err != nil {
+		slog.Error("unable to close body", "error", err)
+	}
 
 	// check if we got a session cookie - if not then the login failed
 

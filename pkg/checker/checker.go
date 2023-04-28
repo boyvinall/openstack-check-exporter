@@ -13,7 +13,7 @@ import (
 )
 
 // CheckerFactory creates a new `Checker` instance
-type CheckerFactory func(authOpts *gophercloud.AuthOptions, opts CloudOptions) (Checker, error)
+type CheckerFactory func(authOpts *gophercloud.AuthOptions, opts CloudOptions) (Checker, error) //nolint:revive // checker.CheckerFactory is fine
 
 // Checker is a single check that can be run against an OpenStack cloud.
 // E.g. create a network, create a server, etc.

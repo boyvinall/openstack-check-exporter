@@ -3,6 +3,7 @@ package checker
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 
 	"gopkg.in/yaml.v2"
@@ -24,7 +25,7 @@ type Settings struct {
 
 // LoadSettingsFromFile loads a settings.yaml file from the given path and returns a Settings struct
 func LoadSettingsFromFile(path string) (*Settings, error) {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}

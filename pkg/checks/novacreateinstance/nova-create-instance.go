@@ -156,7 +156,7 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(output, string(b))
+	fmt.Fprintln(output, string(b))
 
 	// wait for the instance to be active
 

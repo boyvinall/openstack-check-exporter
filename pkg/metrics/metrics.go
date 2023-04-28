@@ -5,22 +5,26 @@ import (
 	"sync"
 	"time"
 
-	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
 )
 
+// Metrics implements a prometheus.Collector that exposes metrics about the checks that were run
 type Metrics struct {
 	lock   sync.Mutex
 	latest []*checker.CheckResult
 	when   time.Time
 }
 
+// New returns a new Metrics instance
 func New() *Metrics {
 	m := &Metrics{}
-	prometheus.Register(m)
+	prometheus.MustRegister(m)
 	return m
 }
 
+// Update updates the metrics with the latest check results
 func (m *Metrics) Update(results []*checker.CheckResult) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -28,6 +32,7 @@ func (m *Metrics) Update(results []*checker.CheckResult) {
 	m.when = time.Now()
 }
 
+// Describe implements the prometheus.Collector interface
 func (m *Metrics) Describe(ch chan<- *prometheus.Desc) {
 	prometheus.DescribeByCollect(m, ch)
 }

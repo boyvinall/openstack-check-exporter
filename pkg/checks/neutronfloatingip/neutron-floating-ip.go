@@ -20,14 +20,14 @@ type checkNeutronFloatingIP struct {
 // New returns a new Checker instance that creates/deletes a floating IP
 func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
 
-	checker := &checkNeutronFloatingIP{
+	c := &checkNeutronFloatingIP{
 		pool: "public",
 	}
-	if _, err := opts.String(checker.GetName(), "pool_name", &checker.pool); err != nil {
+	if _, err := opts.String(c.GetName(), "pool_name", &c.pool); err != nil {
 		return nil, err
 	}
 
-	return checker, nil
+	return c, nil
 }
 
 func (c *checkNeutronFloatingIP) GetName() string {

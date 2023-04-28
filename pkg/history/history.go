@@ -8,6 +8,8 @@ import (
 	"sync"
 	"text/template"
 
+	"golang.org/x/exp/slog"
+
 	"github.com/boyvinall/openstack-check-exporter/pkg/checker"
 )
 
@@ -19,6 +21,8 @@ var (
 	detailTemplate string
 )
 
+// History stores check results and provides a web interface to view them.
+// Similar to the web ui provided by the prometheus blackbox exporter.
 type History struct {
 	lock     sync.Mutex
 	maxCount int
@@ -33,6 +37,7 @@ type result struct {
 	*checker.CheckResult
 }
 
+// New creates a new History instance
 func New(maxCount int) (*History, error) {
 	index, err := template.New("index").Parse(indexTemplate)
 	if err != nil {
@@ -49,6 +54,7 @@ func New(maxCount int) (*History, error) {
 	}, nil
 }
 
+// Append adds a new check result to the history
 func (h *History) Append(r *checker.CheckResult) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
@@ -61,6 +67,7 @@ func (h *History) Append(r *checker.CheckResult) {
 	h.id++
 }
 
+// Trim removes the oldest check results if the history is longer than maxCount
 func (h *History) Trim() {
 	h.lock.Lock()
 	defer h.lock.Unlock()
@@ -69,13 +76,20 @@ func (h *History) Trim() {
 	}
 }
 
+// ShowList displays the list of check results in a web browser
 func (h *History) ShowList(w http.ResponseWriter, r *http.Request) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	h.index.Execute(w, h.results)
+	err := h.index.Execute(w, h.results)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		slog.Error("unable to execute template", "error", err)
+		return
+	}
 }
 
+// ShowDetail displays the details of a single check result in a web browser
 func (h *History) ShowDetail(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "" {
 		h.ShowList(w, r)
@@ -93,7 +107,11 @@ func (h *History) ShowDetail(w http.ResponseWriter, r *http.Request) {
 	defer h.lock.Unlock()
 	for _, r := range h.results {
 		if r.ID == id {
-			h.detail.Execute(w, r)
+			err = h.detail.Execute(w, r)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				slog.Error("unable to execute template", "error", err)
+			}
 			return
 		}
 	}

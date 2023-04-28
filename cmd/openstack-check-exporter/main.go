@@ -40,7 +40,11 @@ func serve(managers []*checker.CheckManager) error {
 		http.HandleFunc("/", h.ShowList)
 		http.Handle("/detail/", http.StripPrefix("/detail/", http.HandlerFunc(h.ShowDetail)))
 		http.Handle("/metrics", promhttp.Handler())
-		serveCh <- http.ListenAndServe(":8080", nil)
+		server := &http.Server{
+			Addr:              ":8080",
+			ReadHeaderTimeout: 3 * time.Second,
+		}
+		serveCh <- server.ListenAndServe()
 	}()
 
 	ctx := context.Background()

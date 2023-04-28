@@ -22,13 +22,13 @@ type checkGlanceShow struct {
 
 // New returns a new Checker instance that lists images in glance
 func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
-	checker := &checkGlanceShow{
+	c := &checkGlanceShow{
 		image: "cirros",
 	}
-	if _, err := opts.String(checker.GetName(), "image", &checker.image); err != nil {
+	if _, err := opts.String(c.GetName(), "image", &c.image); err != nil {
 		return nil, err
 	}
-	return checker, nil
+	return c, nil
 }
 
 func (c *checkGlanceShow) GetName() string {
@@ -45,14 +45,14 @@ func (c *checkGlanceShow) Check(ctx context.Context, providerClient *gophercloud
 
 	get := images.Get(imageClient, c.image)
 	if get.Err == nil {
-		i, err := get.Extract()
-		if err != nil {
-			return err
+		i, e := get.Extract()
+		if e != nil {
+			return e
 		}
 
-		b, err := json.MarshalIndent(i, "", "  ")
-		if err != nil {
-			return err
+		b, e := json.MarshalIndent(i, "", "  ")
+		if e != nil {
+			return e
 		}
 
 		fmt.Fprintln(output, string(b))
