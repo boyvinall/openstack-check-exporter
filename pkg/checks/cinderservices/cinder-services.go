@@ -4,6 +4,7 @@ package cinderservices
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud"
@@ -35,6 +36,7 @@ func (c *checkCinderServices) Check(ctx context.Context, providerClient *gopherc
 	cinderClient.Context = ctx
 
 	healthy := true
+	count := 0
 	err = services.List(cinderClient, services.ListOpts{}).EachPage(func(page pagination.Page) (bool, error) {
 		serviceList, e := services.ExtractServices(page)
 		if e != nil {
@@ -48,6 +50,7 @@ func (c *checkCinderServices) Check(ctx context.Context, providerClient *gopherc
 			}
 			fmt.Fprintln(output, s.Binary, s.Zone, s.Host, s.State, s.Status, s.DisabledReason)
 		}
+		count += len(serviceList)
 		return true, nil // true: we want to check all services
 	})
 
@@ -57,6 +60,10 @@ func (c *checkCinderServices) Check(ctx context.Context, providerClient *gopherc
 
 	if !healthy {
 		return fmt.Errorf("cinder services not healthy")
+	}
+
+	if count == 0 {
+		return errors.New("no cinder services found")
 	}
 
 	return err

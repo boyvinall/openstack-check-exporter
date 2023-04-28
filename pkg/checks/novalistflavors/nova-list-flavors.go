@@ -4,6 +4,7 @@ package novalistflavors
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud"
@@ -33,6 +34,7 @@ func (c *checkNovaListFlavors) Check(ctx context.Context, providerClient *gopher
 
 	novaClient.Context = ctx
 
+	count := 0
 	err = flavors.ListDetail(novaClient, flavors.ListOpts{}).EachPage(func(page pagination.Page) (bool, error) {
 		flavorList, e := flavors.ExtractFlavors(page)
 		if e != nil {
@@ -42,7 +44,17 @@ func (c *checkNovaListFlavors) Check(ctx context.Context, providerClient *gopher
 			flavor := &flavorList[i]
 			fmt.Fprintln(output, flavor.Name)
 		}
+		count += len(flavorList)
 		return true, nil // true: we list all pages of flavors
 	})
+
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return errors.New("no flavors found")
+	}
+
 	return nil
 }

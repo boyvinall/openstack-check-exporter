@@ -4,6 +4,7 @@ package neutronlistnetworks
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud"
@@ -33,6 +34,7 @@ func (c *neutronListNetworks) Check(ctx context.Context, providerClient *gopherc
 	neutronClient.Context = ctx
 
 	healthy := true
+	count := 0
 	err = networks.List(neutronClient, networks.ListOpts{}).EachPage(func(page pagination.Page) (bool, error) {
 		networkList, e := networks.ExtractNetworks(page)
 		if e != nil {
@@ -45,6 +47,7 @@ func (c *neutronListNetworks) Check(ctx context.Context, providerClient *gopherc
 			}
 			fmt.Fprintln(output, network.ID, network.Status, network.AdminStateUp, network.Name)
 		}
+		count += len(networkList)
 		return true, nil // true: list all networks
 	})
 
@@ -53,7 +56,11 @@ func (c *neutronListNetworks) Check(ctx context.Context, providerClient *gopherc
 	}
 
 	if !healthy {
-		return fmt.Errorf("neutron networks not healthy")
+		return errors.New("neutron networks not healthy")
+	}
+
+	if count == 0 {
+		return errors.New("no networks found")
 	}
 
 	return nil

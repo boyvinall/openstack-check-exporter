@@ -4,6 +4,7 @@ package novaservices
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud"
@@ -33,6 +34,7 @@ func (c *checkNovaServices) Check(ctx context.Context, providerClient *gopherclo
 	novaClient.Context = ctx
 
 	healthy := true
+	count := 0
 	err = services.List(novaClient, services.ListOpts{}).EachPage(func(page pagination.Page) (bool, error) {
 		serviceList, e := services.ExtractServices(page)
 		if e != nil {
@@ -46,6 +48,7 @@ func (c *checkNovaServices) Check(ctx context.Context, providerClient *gopherclo
 			}
 			fmt.Fprintln(output, s.Binary, s.Zone, s.Host, s.State, s.Status, s.DisabledReason)
 		}
+		count += len(serviceList)
 		return true, nil // true: we want to check all services
 	})
 
@@ -54,7 +57,11 @@ func (c *checkNovaServices) Check(ctx context.Context, providerClient *gopherclo
 	}
 
 	if !healthy {
-		return fmt.Errorf("nova services not healthy")
+		return errors.New("nova services not healthy")
+	}
+
+	if count == 0 {
+		return errors.New("no nova services found")
 	}
 
 	return nil

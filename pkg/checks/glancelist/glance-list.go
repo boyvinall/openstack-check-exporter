@@ -4,6 +4,7 @@ package glancelist
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud"
@@ -33,6 +34,7 @@ func (c *checkGlanceList) Check(ctx context.Context, providerClient *gophercloud
 	}
 	imageClient.Context = ctx
 
+	count := 0
 	err = images.List(imageClient, images.ListOpts{}).EachPage(func(page pagination.Page) (bool, error) {
 		imageList, e := images.ExtractImages(page)
 		if e != nil {
@@ -42,8 +44,17 @@ func (c *checkGlanceList) Check(ctx context.Context, providerClient *gophercloud
 			image := &imageList[i]
 			fmt.Fprintln(output, image.Name)
 		}
+		count += len(imageList)
 		return false, nil // false: we only list the first page of images
 	})
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return errors.New("no images found")
+	}
+
+	return nil
 }
