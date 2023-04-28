@@ -29,7 +29,7 @@ func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.
 	c := &checkHorizonLogin{
 		username: authOpts.Username,
 		password: authOpts.Password,
-		region:   authOpts.IdentityEndpoint,
+		region:   "",
 		client: &http.Client{
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				// we disable redirects so we can check for the sessionid cookie
