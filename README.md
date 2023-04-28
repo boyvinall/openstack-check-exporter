@@ -12,7 +12,7 @@ By comparison, <https://github.com/openstack-exporter/openstack-exporter> does n
 API and exposing those details.  It's recommended to run both of these exporters at the same time. There is some overlapping functionality,
 though a benefit of the exporter from this repo is that durations are recorded, which can be useful to monitor for performance regressions.
 
-Notes
+## Notes
 
 * This exporter runs the checks as a background process and then serves up the cached metrics for scraping.  This is contrary to conventions
   with prometheus - but, in this case, has some benefits:
@@ -21,3 +21,9 @@ Notes
       is important for things like creation of nova instances, which could add unnecessary load to the cloud.  
     * Additionally, the nova instance check ensures that there is not already a VM of the given name running. If the exporter is scraped
       multiple times then this would need to somehow pass the VM name in as a custom scrape query arg - doable, but a bit messy.
+
+## To do
+
+* [ ] Break up checks to run on their own timers
+* [ ] Ensure nova create instance times out properly
+* [ ] Add Dockerfile and push to docker hub

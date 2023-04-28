@@ -197,7 +197,7 @@ func main() {
 			Aliases: []string{"v"},
 			Usage:   "Increase verbosity",
 			Action: func(c *cli.Context, verbose bool) error {
-				programLevel := slog.LevelWarn
+				programLevel := slog.LevelInfo
 				if verbose {
 					programLevel = slog.LevelDebug
 				}

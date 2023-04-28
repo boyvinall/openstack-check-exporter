@@ -42,9 +42,9 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	for _, r := range m.latest {
-		up := 1.0
+		up := 1
 		if r.Error != nil {
-			up = 0.0
+			up = 0
 		}
 
 		ch <- prometheus.MustNewConstMetric(
@@ -58,7 +58,7 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 				nil,
 			),
 			prometheus.GaugeValue,
-			up,
+			float64(up),
 			r.Name,
 			r.Cloud,
 		)
