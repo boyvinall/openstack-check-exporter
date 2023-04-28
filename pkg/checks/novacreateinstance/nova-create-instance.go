@@ -47,7 +47,7 @@ func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.
 		return nil, err
 	}
 
-	return &checkNovaInstance{}, nil
+	return checker, nil
 }
 
 func (c *checkNovaInstance) GetName() string {
