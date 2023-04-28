@@ -107,3 +107,18 @@ func (opts CloudOptions) String(checkname, key string, value *string) (bool, err
 	*value = s
 	return found, nil
 }
+
+func (opts CloudOptions) Int(checkname, key string, value *int) (bool, error) {
+	v, found := opts[checkname][key]
+	if !found {
+		return found, nil
+	}
+
+	s, ok := v.(int)
+	if !ok {
+		return found, fmt.Errorf("%s/%s value is not an int", checkname, key)
+	}
+
+	*value = s
+	return found, nil
+}

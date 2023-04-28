@@ -1,3 +1,4 @@
+// Package horizonlogin implements a `checker.Check` that logs into Horizon
 package horizonlogin
 
 import (
@@ -8,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/gophercloud/gophercloud"
 
@@ -18,11 +20,51 @@ type checkHorizonLogin struct {
 	horizonURL string
 	username   string
 	password   string
+	region     string // used when submitting the login form
+	client     *http.Client
 }
 
 // New returns a new Checker instance that logs into Horizon
 func New(authOpts *gophercloud.AuthOptions, opts checker.CloudOptions) (checker.Checker, error) {
-	return &checkHorizonLogin{}, nil
+	c := &checkHorizonLogin{
+		username: authOpts.Username,
+		password: authOpts.Password,
+		region:   authOpts.IdentityEndpoint,
+		client: &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				// we disable redirects so we can check for the sessionid cookie
+				return http.ErrUseLastResponse
+			},
+		},
+	}
+
+	// read the horizon URL from options
+	if _, err := opts.String(c.GetName(), "horizon_url", &c.horizonURL); err != nil {
+		return nil, err
+	}
+	if _, err := opts.String(c.GetName(), "region", &c.region); err != nil {
+		return nil, err
+	}
+	timeout := 10
+	if _, err := opts.Int(c.GetName(), "timeout", &timeout); err != nil {
+		return nil, err
+	}
+	c.client.Timeout = time.Duration(timeout) * time.Second
+
+	// if not specified, build the horizon URL from the identity endpoint
+	if c.horizonURL == "" {
+		u, err := url.Parse(authOpts.IdentityEndpoint)
+		if err != nil {
+			return nil, err
+		}
+		u.Host, _, err = net.SplitHostPort(u.Host)
+		if err != nil {
+			return nil, err
+		}
+		u.Path = "/auth/login/"
+		c.horizonURL = u.String()
+	}
+	return c, nil
 }
 
 func (c *checkHorizonLogin) GetName() string {
@@ -30,31 +72,13 @@ func (c *checkHorizonLogin) GetName() string {
 }
 
 func (c *checkHorizonLogin) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
-	var u *url.URL
-	var err error
 
-	horizonURL := c.horizonURL
-	if horizonURL == "" {
-		u, err = url.Parse(providerClient.IdentityBase)
-		if err != nil {
-			return err
-		}
-		u.Host, _, err = net.SplitHostPort(u.Host)
-		if err != nil {
-			return err
-		}
-		u.Path = "/auth/login/"
-		horizonURL = u.String()
-	} else {
-		u, err = url.Parse(horizonURL)
-		if err != nil {
-			return err
-		}
-	}
+	// copy the transport over for logging purposes ... could be a better approach to this
+	c.client.Transport = providerClient.HTTPClient.Transport
 
-	providerClient.Context = ctx
+	// first load the login page to get the CSRF token
 
-	resp, err := providerClient.HTTPClient.Get(horizonURL)
+	resp, err := c.client.Get(c.horizonURL)
 	if err != nil {
 		return err
 	}
@@ -71,26 +95,43 @@ func (c *checkHorizonLogin) Check(ctx context.Context, providerClient *gopherclo
 		}
 	}
 
+	// then post the login form
+
 	values := url.Values{}
 	values.Set("username", c.username)
 	values.Set("password", c.password)
 	values.Set("csrfmiddlewaretoken", csrfToken)
+	values.Set("region", c.region)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, horizonURL, bytes.NewBufferString(values.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.horizonURL, bytes.NewBufferString(values.Encode()))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Referer", c.horizonURL)
 	req.AddCookie(&http.Cookie{Name: "csrftoken", Value: csrfToken})
 
-	resp, err = providerClient.HTTPClient.Do(req)
+	resp, err = c.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+
+	// check if we got a session cookie - if not then the login failed
+
+	gotSession := false
+	for _, c := range resp.Cookies() {
+		if c.Name == "sessionid" {
+			gotSession = true
+		}
+	}
+
+	// print result
+
+	fmt.Fprintln(output, resp.Status)
+	if !gotSession {
 		return errors.New("horizon login failed")
 	}
-	fmt.Fprintln(output, resp.Status)
+
 	return nil
 }
