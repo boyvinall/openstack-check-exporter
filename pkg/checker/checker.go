@@ -10,6 +10,8 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/utils/openstack/clientconfig"
+	"golang.org/x/exp/slog"
+	"golang.org/x/sync/errgroup"
 )
 
 // CheckerFactory creates a new `Checker` instance
@@ -33,9 +35,14 @@ type CheckResult struct {
 	Output   string
 }
 
+// CheckResultCallback is a callback function that is called for each CheckResult.
+// If true is returned, then additional checks should be stopped.
+type CheckResultCallback func(r CheckResult) bool
+
 // CheckManager runs a set of checks against an OpenStack cloud
 type CheckManager struct {
 	authOpts *gophercloud.AuthOptions
+	opts     CloudOptions
 	checks   []Checker
 	cloud    string
 	region   string
@@ -62,6 +69,7 @@ func New(cloud string, opts CloudOptions, factories []CheckerFactory) (*CheckMan
 
 	cm := &CheckManager{
 		authOpts: authOpts,
+		opts:     opts,
 		cloud:    cloud,
 		region:   region,
 	}
@@ -77,23 +85,73 @@ func New(cloud string, opts CloudOptions, factories []CheckerFactory) (*CheckMan
 	return cm, nil
 }
 
-// Run runs all registered checks in parallel and returns the results
-func (cm *CheckManager) Run(ctx context.Context, checks ...string) ([]*CheckResult, error) {
-	// First authenticate to get a token - do this only once across all tests.
-	// But we consciously create a new client from scratch on each run instead
-	// of re-authenticating a client across multiple runs.  This allows us to
-	// verify the token workflow more like a real client would.
-	providerClient, err := openstack.NewClient(cm.authOpts.IdentityEndpoint)
-	if err != nil {
-		return nil, err
-	}
-	providerClient.HTTPClient = newHTTPClient()
+// Run runs all registered checks in parallel and calls the callback function for each result
+func (cm *CheckManager) Run(ctx context.Context, callback CheckResultCallback, checks ...string) error {
 
-	err = openstack.Authenticate(providerClient, *cm.authOpts)
-	if err != nil {
-		return nil, err
-	}
+	g := errgroup.Group{}
+	for _, c := range cm.getChecksToRun(checks...) {
+		check := c // loop invariant
 
+		g.Go(func() error {
+			interval := 60
+			timeout := interval
+			if _, err := cm.opts.Int(check.GetName(), "interval", &interval); err != nil {
+				return err
+			}
+			if _, err := cm.opts.Int(check.GetName(), "timeout", &timeout); err != nil {
+				return err
+			}
+			ticker := time.NewTicker(time.Duration(interval) * time.Second)
+			for {
+				// Run the check immediately
+
+				slog.Debug("running check",
+					"check", check.GetName(),
+					"interval", interval,
+					"timeout", timeout,
+				)
+
+				var output bytes.Buffer
+				start := time.Now()
+
+				// We consciously create a new client from scratch on each run instead
+				// of re-authenticating a client across multiple runs.  This allows us to
+				// verify the token workflow more like a real client would.
+				providerClient, err := cm.createAuthenticatedClient()
+				if err == nil {
+					checkCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+					err = check.Check(checkCtx, providerClient, cm.region, &output)
+					cancel()
+				}
+
+				// callback even if we failed to create the providerClient
+				done := callback(CheckResult{
+					Cloud:    cm.cloud,
+					Name:     check.GetName(),
+					Error:    err,
+					Start:    start,
+					Duration: time.Since(start),
+					Output:   output.String(),
+				})
+				if done {
+					return nil
+				}
+
+				// Wait for the next interval, or until the context is done
+
+				select {
+				case <-ctx.Done():
+					return nil
+
+				case <-ticker.C:
+				}
+			}
+		})
+	}
+	return g.Wait()
+}
+
+func (cm *CheckManager) getChecksToRun(checks ...string) []Checker {
 	var checksToRun []Checker
 	if len(checks) > 0 {
 		checksToRun = make([]Checker, 0, len(checks))
@@ -108,29 +166,20 @@ func (cm *CheckManager) Run(ctx context.Context, checks ...string) ([]*CheckResu
 	} else {
 		checksToRun = cm.checks
 	}
-	// then run all checks in parallel
-	count := len(checksToRun)
-	results := make([]*CheckResult, 0, count)
-	resultCh := make(chan *CheckResult)
-	for _, c := range checksToRun {
-		check := c // loop invariant
-		go func() {
-			var output bytes.Buffer
-			start := time.Now()
-			err := check.Check(ctx, providerClient, cm.region, &output)
-			duration := time.Since(start)
-			resultCh <- &CheckResult{
-				Cloud:    cm.cloud,
-				Name:     check.GetName(),
-				Error:    err,
-				Start:    start,
-				Duration: duration,
-				Output:   output.String(),
-			}
-		}()
+	return checksToRun
+}
+
+func (cm *CheckManager) createAuthenticatedClient() (*gophercloud.ProviderClient, error) {
+	providerClient, err := openstack.NewClient(cm.authOpts.IdentityEndpoint)
+	if err != nil {
+		return nil, err
 	}
-	for i := 0; i < count; i++ {
-		results = append(results, <-resultCh)
+	providerClient.HTTPClient = newHTTPClient()
+
+	err = openstack.Authenticate(providerClient, *cm.authOpts)
+	if err != nil {
+		return nil, err
 	}
-	return results, nil
+
+	return providerClient, nil
 }

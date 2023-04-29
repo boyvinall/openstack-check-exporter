@@ -24,6 +24,4 @@ though a benefit of the exporter from this repo is that durations are recorded, 
 
 ## To do
 
-* [ ] Break up checks to run on their own timers
-* [ ] Ensure nova create instance times out properly
 * [ ] Add Dockerfile and push to docker hub

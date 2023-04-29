@@ -80,13 +80,12 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 	if err != nil {
 		return err
 	}
-	novaClient.Context = ctx
+	// don't set novaClient.Context so we can cleanup the instance even if the context is cancelled
 
 	neutronClient, err := openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}
-	neutronClient.Context = ctx
 
 	// resolve names into IDs – do this here, not in the constructor, so that we behave correctly if the IDs change during the lifetime of the checker
 
@@ -160,9 +159,11 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 
 	// wait for the instance to be active
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
+	cancelled := false
+wait:
 	for {
 		if server.Status == "ACTIVE" {
 			break
@@ -170,7 +171,9 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			// don't return immediately, we need to delete the instance
+			cancelled = true
+			break wait
 
 		case <-ticker.C:
 		}
@@ -183,6 +186,9 @@ func (c *checkNovaInstance) Check(ctx context.Context, providerClient *gopherclo
 	// delete the instance
 
 	err = servers.Delete(novaClient, server.ID).ExtractErr()
+	if cancelled {
+		return errors.New("cancelled")
+	}
 	if err != nil {
 		return err
 	}

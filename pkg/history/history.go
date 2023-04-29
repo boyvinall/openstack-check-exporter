@@ -55,13 +55,13 @@ func New(maxCount int) (*History, error) {
 }
 
 // Append adds a new check result to the history
-func (h *History) Append(r *checker.CheckResult) {
+func (h *History) Append(r checker.CheckResult) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	h.results = append([]result{
 		{
 			ID:          h.id,
-			CheckResult: r,
+			CheckResult: &r,
 		},
 	}, h.results...)
 	h.id++

@@ -8,6 +8,7 @@ require (
 	github.com/prometheus/client_golang v1.15.0
 	github.com/urfave/cli/v2 v2.25.1
 	golang.org/x/exp v0.0.0-20230420155640-133eef4313cb
+	golang.org/x/sync v0.1.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

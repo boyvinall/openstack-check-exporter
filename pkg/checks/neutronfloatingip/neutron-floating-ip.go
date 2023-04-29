@@ -39,8 +39,7 @@ func (c *checkNeutronFloatingIP) Check(ctx context.Context, providerClient *goph
 	if err != nil {
 		return err
 	}
-
-	novaClient.Context = ctx
+	// don't set novaClient.Context so we can cleanup the floating IP even if the context is cancelled
 
 	// Create a floating IP
 	floatingIP, err := floatingips.Create(novaClient, floatingips.CreateOpts{

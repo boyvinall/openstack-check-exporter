@@ -4,10 +4,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -33,9 +35,11 @@ func serve(listenAddress string, managers []*checker.CheckManager) error {
 	if err != nil {
 		return err
 	}
-	m := metrics.New()
+	metric := metrics.New()
 
-	serveCh := make(chan error)
+	// serve http
+
+	errCh := make(chan error)
 	go func() {
 		http.HandleFunc("/", h.ShowList)
 		http.Handle("/detail/", http.StripPrefix("/detail/", http.HandlerFunc(h.ShowDetail)))
@@ -45,51 +49,84 @@ func serve(listenAddress string, managers []*checker.CheckManager) error {
 			ReadHeaderTimeout: 3 * time.Second,
 		}
 		slog.Info("serving", "address", listenAddress)
-		serveCh <- server.ListenAndServe()
+		errCh <- server.ListenAndServe()
 	}()
 
-	ctx := context.Background()
-	ticker := time.NewTicker(60 * time.Second)
-	for {
-		select {
+	// run the managers
 
-		case err := <-serveCh:
-			return err
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-		case <-ticker.C:
-			var latest []*checker.CheckResult
-			for _, mgr := range managers {
-				results, err := mgr.Run(ctx)
-				if err != nil {
-					log.Println("ERROR:", err)
-				}
-				for _, r := range results {
-					latest = append(latest, r)
-					h.Append(r)
-				}
+	wg := sync.WaitGroup{}
+	for _, mgr := range managers {
+
+		wg.Add(1)
+		go func(m *checker.CheckManager) {
+			defer wg.Done()
+
+			// run until the context is cancelled
+			e := m.Run(ctx, func(r checker.CheckResult) bool {
+				metric.Update(r)
+				h.Append(r)
+				h.Trim()
+				return false
+			})
+			if e != nil {
+				errCh <- e
+				return
 			}
-			h.Trim()
-			m.Update(latest)
+		}(mgr)
+	}
+
+	// wait for error or signal
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs,
+		os.Interrupt,    // CTRL-C
+		syscall.SIGTERM, // e.g. docker graceful shutdown
+	)
+	select {
+	case err = <-errCh:
+	case <-ctx.Done():
+		err = ctx.Err()
+	case s := <-sigs:
+		switch s {
+		case os.Interrupt:
+			slog.Info("Interrupt: CTRL-C")
+		case syscall.SIGTERM:
+			slog.Info("SIGTERM")
+		default:
+			slog.Info("Signal: %v", s)
 		}
 	}
+	cancel()
+
+	// ensure we don't exit before all managers are done, otherwise we might leave some stale
+	// resources behind (e.g. instances, floating IPs, etc.)
+	wg.Wait()
+
+	return err
 }
 
 func once(managers []*checker.CheckManager, checks []string) error {
+	lock := sync.Mutex{}
 	ctx := context.Background()
 	for _, mgr := range managers {
-		results, err := mgr.Run(ctx, checks...)
-		if err != nil {
-			return err
-		}
+		err := mgr.Run(ctx, func(r checker.CheckResult) bool {
+			lock.Lock()
+			defer lock.Unlock()
 
-		for _, r := range results {
 			fmt.Println("Start   ", r.Start.UTC().Format(time.RFC3339))
 			fmt.Println("Cloud   ", r.Cloud)
 			fmt.Println("Name    ", r.Name)
 			fmt.Println("Error   ", r.Error)
-			fmt.Println("Duration", r.Duration)
+			fmt.Println("Duration", r.Duration.Truncate(time.Millisecond))
 			fmt.Println("Output\n-")
 			fmt.Println(r.Output, "\n---")
+			return true
+		}, checks...)
+		if err != nil {
+			return err
 		}
 	}
 

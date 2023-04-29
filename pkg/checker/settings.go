@@ -44,7 +44,7 @@ func (s *Settings) GetCloudOptions(cloud string) CloudOptions {
 	// first set hard-coded default
 	defaultGlobalOpts := CheckOptions{
 		"interval": 60,
-		"timeout":  10,
+		"timeout":  60,
 	}
 
 	// then overlay global defaults from the settings file
