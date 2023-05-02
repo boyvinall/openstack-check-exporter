@@ -8,6 +8,8 @@ services:
       - OS_CLOUD
     command: [
       -v,
+      -c, os1,
+      -c, os2,
       serve
     ]
     ports:

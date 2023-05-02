@@ -180,7 +180,7 @@ func main() {
 			Usage:       "Start the exporter",
 			Description: strings.Join([]string{}, "\n"),
 			Action: func(c *cli.Context) error {
-				managers, err := createManagers(c.String("settings-file"), c.String("cloud"))
+				managers, err := createManagers(c.String("settings-file"), c.StringSlice("cloud")...)
 				if err != nil {
 					return err
 				}
@@ -199,7 +199,7 @@ func main() {
 			Usage:       "run the checks once and exit",
 			Description: strings.Join([]string{}, "\n"),
 			Action: func(c *cli.Context) error {
-				managers, err := createManagers(c.String("settings-file"), c.String("cloud"))
+				managers, err := createManagers(c.String("settings-file"), c.StringSlice("cloud")...)
 				if err != nil {
 					return err
 				}
@@ -222,7 +222,7 @@ func main() {
 		},
 	}
 	app.Flags = []cli.Flag{
-		&cli.StringFlag{
+		&cli.StringSliceFlag{
 			Name:    "cloud",
 			Aliases: []string{"c"},
 			Usage:   "OpenStack cloud name",
