@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  openstack-check-exporter:
+    image: boyvinall/openstack-check-exporter
+    container_name: openstack-check-exporter
+    restart: always
+    environment:
+      - OS_CLOUD
+    command: [
+      -v,
+      serve
+    ]
+    ports:
+      - 8080:8080
+    volumes:
+      - ./settings.yaml:/settings.yaml
+      - ./clouds.yaml:/clouds.yaml

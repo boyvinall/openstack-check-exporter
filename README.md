@@ -24,4 +24,4 @@ though a benefit of the exporter from this repo is that durations are recorded, 
 
 ## To do
 
-* [ ] Add Dockerfile and push to docker hub
+* [ ] Add some unit tests
