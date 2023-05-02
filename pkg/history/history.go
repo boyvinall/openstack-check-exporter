@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sync"
 	"text/template"
+	"time"
 
 	"golang.org/x/exp/slog"
 
@@ -39,7 +40,16 @@ type result struct {
 
 // New creates a new History instance
 func New(maxCount int) (*History, error) {
-	index, err := template.New("index").Parse(indexTemplate)
+	funcMap := template.FuncMap{
+		"width": func(d time.Duration) uint64 {
+			widthOneSecond := 30 // px
+			return uint64((d * time.Duration(widthOneSecond)) / time.Second)
+		},
+		"duration": func(d time.Duration) time.Duration {
+			return d.Round(time.Millisecond)
+		},
+	}
+	index, err := template.New("index").Funcs(funcMap).Parse(indexTemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +91,17 @@ func (h *History) ShowList(w http.ResponseWriter, r *http.Request) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	err := h.index.Execute(w, h.results)
+	var results []result
+	if checkname := r.URL.Query().Get("name"); checkname == "" {
+		results = h.results
+	} else {
+		for i := range h.results {
+			if h.results[i].Name == checkname {
+				results = append(results, h.results[i])
+			}
+		}
+	}
+	err := h.index.Execute(w, results)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("unable to execute template", "error", err)

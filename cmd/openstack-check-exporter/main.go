@@ -31,7 +31,7 @@ import (
 )
 
 func serve(listenAddress string, managers []*checker.CheckManager) error {
-	h, err := history.New(1000)
+	h, err := history.New(400)
 	if err != nil {
 		return err
 	}
@@ -65,6 +65,9 @@ func serve(listenAddress string, managers []*checker.CheckManager) error {
 			defer wg.Done()
 
 			// run until the context is cancelled
+			slog.Info("running manager",
+				"cloud", m.GetCloud(),
+			)
 			e := m.Run(ctx, func(r checker.CheckResult) bool {
 				metric.Update(r)
 				h.Append(r)
@@ -80,6 +83,7 @@ func serve(listenAddress string, managers []*checker.CheckManager) error {
 
 	// wait for error or signal
 
+	slog.Info("waiting for error or signal")
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs,
 		os.Interrupt,    // CTRL-C
@@ -222,6 +226,7 @@ func main() {
 			Name:    "cloud",
 			Aliases: []string{"c"},
 			Usage:   "OpenStack cloud name",
+			EnvVars: []string{"OS_CLOUD"},
 		},
 		&cli.StringFlag{
 			Name:    "settings-file",

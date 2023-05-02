@@ -1,0 +1,24 @@
+default:
+  global:
+    interval: 60
+    timeout: 60
+  cinder_check_services:
+  glance_list_images:
+  glance_show_image:
+    image: cirros
+  horizon_login:
+  neutron_floating_ip:
+    pool_name: admin-pool
+  neutron_list_networks:
+  nova_create_instance:
+    auto_delete: true
+    interval: 300
+    timeout: 180
+  nova_list_flavors:
+  nova_check_services:
+
+clouds:
+  os1:
+    horizon_login:
+      login_url: https://myopenstack/auth/login/
+      # region: 

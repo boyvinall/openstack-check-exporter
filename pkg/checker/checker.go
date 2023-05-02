@@ -151,6 +151,11 @@ func (cm *CheckManager) Run(ctx context.Context, callback CheckResultCallback, c
 	return g.Wait()
 }
 
+// GetCloud returns the cloud that this manager has been configured for
+func (cm *CheckManager) GetCloud() string {
+	return cm.cloud
+}
+
 func (cm *CheckManager) getChecksToRun(checks ...string) []Checker {
 	var checksToRun []Checker
 	if len(checks) > 0 {

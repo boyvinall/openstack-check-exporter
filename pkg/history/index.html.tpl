@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>Test</title>
+    <title>Openstack Check Exporter</title>
     <style>
         table {
             border-collapse: collapse;
@@ -10,7 +10,7 @@
             padding: 2px 10px;
         }
         th {
-            background-color: #4CAF50;
+            background-color: #33e;
             color: white;
         }
         body {
@@ -20,24 +20,35 @@
             font-weight: 400;
             color: #3b3b3b;
         }
+        .duration {
+            display: inline-block;
+            background-color: #33e;
+            max-width: 300px;
+        }
     </style>
 </head>
 <body>
+<h1>Openstack Check Exporter</h1>
+<p>
+<a href="/metrics">Metrics</a><br>
+<a href="?">Show all checks</a>
+</p>
 <table>
 <tr>
-    <th>Start</th>
+    <th>Completed</th>
     <th>Cloud</th>
     <th>Name</th>
-    <th>Duration</th>
+    <th colspan="2">Duration</th>
     <th>Error</th>
     <th>Detail</th>
 </tr>
 {{range .}}
     <tr>
-        <td>{{.Start.UTC.Format "2006-01-02T15:04:05Z07:00"}}</td>
+        <td>{{(.Start.Add .Duration).UTC.Format "2006-01-02T15:04:05Z07:00"}}</td>
         <td>{{.Cloud}}</td>
-        <td>{{.Name}}</td>
-        <td>{{.Duration}}</td>
+        <td><a href="?name={{.Name}}">{{.Name}}</a></td>
+        <td>{{duration .Duration}}</td>
+        <td><div class="duration" style="width:{{width .Duration}}px">&nbsp;</div></td>
         <td>{{.Error}}</td>
         <td><a href="/detail/{{.ID}}">{{.ID}}</a></td>
     </tr>

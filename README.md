@@ -24,4 +24,4 @@ though a benefit of the exporter from this repo is that durations are recorded, 
 
 ## To do
 
-* [ ] Add some unit tests
+* [ ] CI, unit tests, etc
