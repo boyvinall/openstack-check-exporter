@@ -29,7 +29,7 @@ func (c *checkCinderServices) GetName() string {
 
 func (c *checkCinderServices) Check(ctx context.Context, providerClient *gophercloud.ProviderClient, region string, output *bytes.Buffer) error {
 
-	cinderClient, err := openstack.NewBlockStorageV2(providerClient, gophercloud.EndpointOpts{Region: region})
+	cinderClient, err := openstack.NewBlockStorageV3(providerClient, gophercloud.EndpointOpts{Region: region})
 	if err != nil {
 		return err
 	}
