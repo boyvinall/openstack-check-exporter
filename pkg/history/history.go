@@ -42,7 +42,7 @@ type result struct {
 func New(maxCount int) (*History, error) {
 	funcMap := template.FuncMap{
 		"width": func(d time.Duration) uint64 {
-			widthOneSecond := 30 // px
+			widthOneSecond := 10 // px
 			return uint64((d * time.Duration(widthOneSecond)) / time.Second)
 		},
 		"duration": func(d time.Duration) time.Duration {

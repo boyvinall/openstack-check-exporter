@@ -22,7 +22,7 @@
         }
         .duration {
             display: inline-block;
-            background-color: #33e;
+            background-color: #bbf;
             max-width: 300px;
         }
     </style>
