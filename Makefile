@@ -42,6 +42,9 @@ snyk:
 	$(call PROMPT,$@)
 	snyk test
 
+GOHOSTARCH=$(shell go env GOHOSTARCH)
+
 .PHONY: docker-build
-docker-build:
+docker-build: ./out/linux-$(GOHOSTARCH)/$(BINARY_NAME)
+	$(call PROMPT,$@)
 	docker build -t boyvinall/openstack-check-exporter .
