@@ -47,6 +47,6 @@ func newHTTPClient() http.Client {
 		Transport: &LogRoundTripper{
 			rt: http.DefaultTransport,
 		},
-		Timeout: 10 * time.Second,
+		Timeout: 20 * time.Second,
 	}
 }
